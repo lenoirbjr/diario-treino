@@ -1,5 +1,5 @@
-const CACHE='diario-treino-v1';
-const CORE=['./','./index.html','./style.css','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='diario-treino-v1.0.1';
+const CORE=['./','./index.html','./style.css?v=1.0.1','./app.js','./manifest.webmanifest?v=1.0.1','./icon-192.png?v=1.0.1','./icon-512.png?v=1.0.1'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(a=>Promise.all(a.filter(k=>k.startsWith('diario-treino-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',e=>{
