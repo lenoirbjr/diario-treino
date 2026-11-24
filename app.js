@@ -11,6 +11,28 @@ const plans=[
 ];
 const KEY='diario-treino.v1', $=s=>document.querySelector(s);
 const units=['kg','kg/lado','kg/halter','placas','sem carga','kg assistência'];
+const cardioOptions={equipment:{treadmill:'Esteira',bike:'Bicicleta'},timing:{start:'Começo',end:'Final'}};
+function parseCardio(cardio){
+ const clean={done:cardio.done,minutes:cardio.minutes};
+ for(const kind of ['equipment','timing']){
+  const value=cardio[kind];
+  if(value===undefined)continue;
+  if(typeof value!=='string'||!Object.hasOwn(cardioOptions[kind],value))throw Error('Aeróbico inválido');
+  clean[kind]=value;
+ }
+ return clean;
+}
+function cardioPicker(kind,label,selected){
+ return `<div class="cardio-pick"><span class="sub" id="cardio-${kind}-label">${label}</span><div class="cardio-choices" role="group" aria-labelledby="cardio-${kind}-label">${Object.entries(cardioOptions[kind]).map(([value,text])=>`<button type="button" data-cardio-kind="${kind}" data-cardio-value="${value}" aria-pressed="${value===selected}">${text}</button>`).join('')}</div></div>`;
+}
+function cardioSummary(c){
+ const details=[c.done?'feito':'não marcado'];
+ if(c.equipment)details.push(cardioOptions.equipment[c.equipment]);
+ if(c.timing)details.push(c.timing==='start'?'No começo':'No final');
+ if(c.minutes!==null)details.push(c.minutes+' min');
+ return details.join(' · ');
+}
+
 const initial=()=>({theme:'auto',drafts:{},history:{}});
 let state=initial(), storageProblem=false, substitution=null;
 const MAX_EXERCISE_NAME=100;
@@ -41,7 +63,7 @@ function parse(data){
      return {done:t.done,reps:t.reps,load:t.load};
     })};
    });
-   out[cat][k]={ex,cardio:{done:s.cardio.done,minutes:s.cardio.minutes}};
+   out[cat][k]={ex,cardio:parseCardio(s.cardio)};
   }
  }
  return out;
@@ -82,14 +104,14 @@ function render(){
  ${q==='s'?'':`<div class="tools"><label class="field">Unidade da carga <select data-unit="${i}">${units.map(u=>`<option ${u===e.unit?'selected':''}>${u}</option>`).join('')}</select></label></div>`}
  ${e.sets.map((t,j)=>`<div class="set" data-i="${i}" data-j="${j}"><span class="sub">${j+1}ª</span><label>${q==='s'?'Segundos':'Reps'+(q?' / perna':'')}<input data-val="reps" type="number" inputmode="numeric" min="0" max="3600" step="1" value="${inputVal(t.reps)}"></label><label>${e.unit==='sem carga'?'Sem carga':'Carga'}<input data-val="load" type="text" inputmode="decimal" value="${inputVal(t.load)}" ${e.unit==='sem carga'?'disabled':''}></label><button data-check aria-pressed="${t.done}" aria-label="Série ${j+1} concluída">✓</button></div>`).join('')}
  <div class="tools"><button data-add="${i}" ${e.sets.length>=20?'disabled':''}>+ Série</button><button data-minus="${i}" ${e.sets.length<=1?'disabled':''}>− Última</button></div></details><button class="exercise-options" data-ex-menu="${i}" type="button" aria-label="Alterar exercício: ${actual}" aria-haspopup="dialog"><span aria-hidden="true">⚙️</span></button></div>`}).join('')}</div>
- <section class="card"><div class="row"><div><h2>Aeróbico ao final</h2><span class="sub">Meta: 10–15 min · ${p.cardio}</span></div><button id="cardioDone" aria-pressed="${s.cardio.done}" aria-label="Aeróbico concluído">✓</button></div><div class="tools"><label class="field">Minutos feitos <input id="minutes" type="number" inputmode="numeric" min="0" max="600" value="${inputVal(s.cardio.minutes)}"></label></div></section>
+ <section class="card cardio-card ${s.cardio.done?'done':''}"><div class="row"><div><h2>Aeróbico</h2><span class="sub">Meta da ficha: 10–15 min</span></div><button id="cardioDone" type="button" aria-pressed="${s.cardio.done}" aria-label="Aeróbico concluído">✓</button></div><div class="cardio-controls">${cardioPicker('equipment','Qual você fez?',s.cardio.equipment)}${cardioPicker('timing','Quando no treino?',s.cardio.timing)}<label class="field">Minutos feitos <input id="minutes" type="number" inputmode="numeric" min="0" max="600" value="${inputVal(s.cardio.minutes)}"></label></div></section>
  <div class="action"><button id="save" class="primary full">${state.history[key()]?'Atualizar registro':'Salvar sessão no histórico'}</button><p class="note">Os ajustes ficam salvos como rascunho. Marque as séries concluídas e salve a sessão quando terminar.</p></div>`;
  updateProgress(s);
  for(const d of document.querySelectorAll('details[data-ex]'))d.addEventListener('toggle',()=>{if(d.open)opened.add(+d.dataset.ex);else opened.delete(+d.dataset.ex)});
 }
 function history(){
  const items=Object.entries(state.history).sort(([a],[b])=>b.localeCompare(a));
- $('#panel').innerHTML=`<h1 class="history-intro">Histórico</h1><p class="note">Acompanhe séries, repetições e cargas salvas. As próximas sessões da mesma ficha puxam os valores do último treino anterior.</p><div class="cards">${items.length?items.map(([k,s])=>{const p=plans[+k.at(-1)], [done,total]=counts(s);return `<details class="card history-item"><summary>${p.name}<span class="sub">${readable(k)} · ${done}/${total} séries feitas</span></summary><ul>${p.ex.map(([n,,,q],i)=>`<li><strong>${escText(displayName(s.ex[i],n))}</strong><br><span class="note">${s.ex[i].sets.map(t=>`${t.done?'✓':'○'} ${t.reps===null?'sem registro':t.reps+(q?' '+q:' reps')}${t.load===null||s.ex[i].unit==='sem carga'?'':' · '+t.load.toLocaleString('pt-BR')+' '+s.ex[i].unit}`).join(' | ')}</span></li>`).join('')}</ul><p class="note">Aeróbico: ${s.cardio.done?'feito':'não marcado'}${s.cardio.minutes===null?'':' · '+s.cardio.minutes+' min'}</p><button data-load="${k}">Abrir sessão</button></details>`}).join(''):'<div class="card">Nenhum treino salvo ainda.</div>'}</div><section class="card"><div class="row"><h2>Seus dados</h2></div><p class="note">O backup inclui sessões, rascunhos e tema. A importação substitui os dados deste aparelho.</p><div class="tools"><button id="export">Exportar backup</button><button id="import">Importar backup</button><input hidden id="file" type="file" accept=".json,application/json"></div></section>`;
+ $('#panel').innerHTML=`<h1 class="history-intro">Histórico</h1><p class="note">Acompanhe séries, repetições e cargas salvas. As próximas sessões da mesma ficha puxam os valores do último treino anterior.</p><div class="cards">${items.length?items.map(([k,s])=>{const p=plans[+k.at(-1)], [done,total]=counts(s);return `<details class="card history-item"><summary>${p.name}<span class="sub">${readable(k)} · ${done}/${total} séries feitas</span></summary><ul>${p.ex.map(([n,,,q],i)=>`<li><strong>${escText(displayName(s.ex[i],n))}</strong><br><span class="note">${s.ex[i].sets.map(t=>`${t.done?'✓':'○'} ${t.reps===null?'sem registro':t.reps+(q?' '+q:' reps')}${t.load===null||s.ex[i].unit==='sem carga'?'':' · '+t.load.toLocaleString('pt-BR')+' '+s.ex[i].unit}`).join(' | ')}</span></li>`).join('')}</ul><p class="note">Aeróbico: ${cardioSummary(s.cardio)}</p><button data-load="${k}">Abrir sessão</button></details>`}).join(''):'<div class="card">Nenhum treino salvo ainda.</div>'}</div><section class="card"><div class="row"><h2>Seus dados</h2></div><p class="note">O backup inclui sessões, rascunhos e tema. A importação substitui os dados deste aparelho.</p><div class="tools"><button id="export">Exportar backup</button><button id="import">Importar backup</button><input hidden id="file" type="file" accept=".json,application/json"></div></section>`;
 }
 function value(raw,max,whole){if(raw.trim()==='')return null;const n=Number(raw.trim().replace(',','.'));return number(n,max,whole)?n:undefined}
 $('#panel').addEventListener('input',e=>{
@@ -167,7 +189,14 @@ $('#panel').addEventListener('click',e=>{
  if(b.matches('[data-day]')){day=+b.dataset.day;opened.clear();render();return}
  if(b.matches('[data-check]')){const row=b.closest('.set'),i=+row.dataset.i,j=+row.dataset.j;edit(s=>s.ex[i].sets[j].done=!s.ex[i].sets[j].done);const s=current(),ex=s.ex[i],d=ex.sets.filter(t=>t.done).length;b.setAttribute('aria-pressed',String(ex.sets[j].done));$('#done-'+i).textContent=d+'/'+ex.sets.length+' feitas';b.closest('details').classList.toggle('done',d===ex.sets.length);updateProgress(s);return}
  if(b.matches('[data-add],[data-minus]')){const j=+(b.dataset.add??b.dataset.minus);const last=current().ex[j].sets.at(-1);if(b.hasAttribute('data-minus')&&(last.done||last.load!==null||last.reps!==null)&&!confirm('Remover a última série e seus valores?'))return;edit(s=>{const a=s.ex[j].sets;if(b.hasAttribute('data-add'))a.push({reps:last.reps,load:last.load,done:false});else a.pop()});render();return}
- if(b.id==='cardioDone'){edit(s=>s.cardio.done=!s.cardio.done);b.setAttribute('aria-pressed',String(current().cardio.done))}
+ if(b.matches('[data-cardio-kind]')){
+  const {cardioKind:kind,cardioValue:val}=b.dataset;
+  if(!['equipment','timing'].includes(kind)||!Object.hasOwn(cardioOptions[kind],val))return;
+  edit(s=>{s.cardio[kind]=val});
+  for(const option of b.parentElement.querySelectorAll('button'))option.setAttribute('aria-pressed',String(option===b));
+  return;
+ }
+ if(b.id==='cardioDone'){edit(s=>s.cardio.done=!s.cardio.done);const done=current().cardio.done;b.setAttribute('aria-pressed',String(done));b.closest('.cardio-card')?.classList.toggle('done',done);return}
  if(b.id==='save'){const invalid=$('#panel input:invalid');if(invalid){invalid.closest('details')?.setAttribute('open','');invalid.reportValidity();return}const s=copy(current());if(!counts(s)[0]&&!s.cardio.done&&!confirm('Salvar a sessão sem marcar nenhuma atividade como feita?'))return;const k=key(),prev=state.history[k],draft=state.drafts[k];state.history[k]=s;delete state.drafts[k];if(persist()){render();say('Sessão salva no histórico.')}else{if(prev)state.history[k]=prev;else delete state.history[k];if(draft)state.drafts[k]=draft;say('Não consegui salvar. Confira o armazenamento ou importe um backup válido.')}return}
  if(b.matches('[data-load]')){const k=b.dataset.load;day=+k.at(-1);date=k.slice(0,10);view='workout';opened.clear();render();return}
  if(b.id==='import')$('#file').click();

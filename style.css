@@ -26,3 +26,17 @@ nav[aria-label="Área do app"] button{padding-inline:6px}
 .exercise-options:focus-visible,.exercise-options:hover{background:var(--tint)}
 #exerciseSubstitution{max-block-size:calc(100dvh - 24px);overflow:auto}
 @media(max-width:560px){#exerciseSubstitution{margin:auto auto calc(12px + env(safe-area-inset-bottom));}}
+
+.cardio-controls{display:grid;gap:12px;margin-top:10px}
+.cardio-pick>.sub{margin:0 0 5px}
+.cardio-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cardio-controls .field{display:block}
+.cardio-controls input{margin-top:4px}
+
+/* Leave breathing room below the focus ring and keep both actions aligned. */
+.substitution-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+.substitution-actions button{min-width:0;padding:8px 5px;font-size:.875rem;white-space:normal;line-height:1.25}
+#substitutionDefault{grid-column:1/-1}
+.cardio-card.done,#cardioDone[aria-pressed=true]{border-color:var(--accent)}
+.cardio-card.done{box-shadow:0 0 0 1px var(--accent)}
+#cardioDone{min-width:44px;flex:none}
