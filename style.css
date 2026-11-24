@@ -8,3 +8,21 @@ select{display:block;background:var(--bg);color:var(--ink);border:1px solid var(
 .date label{display:block;width:100%;min-inline-size:0}
 .date input[type=date]{display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;min-inline-size:0;margin:4px 0 0;-webkit-appearance:none;appearance:none;text-align:left}
 .date input[type=date]::-webkit-date-and-time-value{text-align:left;min-height:1.4em}
+
+/* A engrenagem é irmã de summary, sem aninhar controles no cabeçalho. */
+.exercise-card{position:relative;min-width:0}
+.exercise-card summary{padding-inline-end:54px;overflow-wrap:anywhere}
+.exercise-override{color:var(--accent);font-weight:650}
+.exercise-options{position:absolute;z-index:1;inset-block-start:12px;inset-inline-end:12px;display:grid;place-items:center;inline-size:44px;min-inline-size:44px;block-size:44px;padding:0;font-size:19px;line-height:1;background:var(--tint)}
+#exerciseSubstitution h2{margin:0 0 8px}
+#exerciseSubstitution input{margin-top:4px}
+.substitution-actions{display:flex;flex-wrap:wrap;gap:8px}
+#substitutionError:empty{display:none}
+@media(max-width:350px){.exercise-options{inset-block-start:10px;inset-inline-end:10px}}
+
+nav[aria-label="Área do app"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+nav[aria-label="Área do app"] button{padding-inline:6px}
+.exercise-options{background:transparent;border-color:transparent;font-size:18px}
+.exercise-options:focus-visible,.exercise-options:hover{background:var(--tint)}
+#exerciseSubstitution{max-block-size:calc(100dvh - 24px);overflow:auto}
+@media(max-width:560px){#exerciseSubstitution{margin:auto auto calc(12px + env(safe-area-inset-bottom));}}
